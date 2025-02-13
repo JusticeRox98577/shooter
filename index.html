@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Shooter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let players = {};
+        let bullets = [];
+        const playerId = Math.random().toString(36).substring(7);
+        let player = { id: playerId, x: Math.random() * canvas.width, y: Math.random() * canvas.height, angle: 0 };
+
+        socket.emit('new_player', player);
+        socket.on('update_players', (data) => { players = data; });
+        socket.on('update_bullets', (data) => { bullets = data; });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') player.y -= 5;
+            if (e.key === 'ArrowDown') player.y += 5;
+            if (e.key === 'ArrowLeft') player.x -= 5;
+            if (e.key === 'ArrowRight') player.x += 5;
+            socket.emit('move', player);
+        });
+
+        window.addEventListener('click', () => {
+            socket.emit('shoot', { x: player.x, y: player.y, angle: player.angle });
+        });
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (const id in players) {
+                const p = players[id];
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(p.x, p.y, 20, 20);
+            }
+            for (const bullet of bullets) {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(bullet.x, bullet.y, 5, 5);
+            }
+            requestAnimationFrame(drawGame);
+        }
+        drawGame();
+    </script>
+</body>
+</html>
